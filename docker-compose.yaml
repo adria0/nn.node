@@ -1,0 +1,63 @@
+version: '3.4'
+
+networks:
+    network:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.34.0.0/16
+services:
+
+  etherchain.nn:
+    build:
+      dockerfile: etherchain.dockerfile
+      context: .
+    container_name: etherchain.nn
+    restart: always
+    environment:
+      - ETHERCHAIN_GETHRPC=http://172.34.1.2:8545
+    networks:
+      network:
+        ipv4_address: 172.34.1.3
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data/solc-bin:/etherchain-light/utils/solc-bin
+      - ./data/etherchain:/etherchain-light/data
+    links:
+      - geth.nn
+
+  geth.nn:
+    image: ethereum/client-go:alltools-v1.8.16
+    container_name: geth.nn
+    restart: always
+    ports:
+      - "127.0.0.1:8545:8545"
+      - "30303:30303"
+      - "30303:30303/udp"
+    networks:
+      network:
+        ipv4_address: 172.34.1.2
+    volumes:
+      - ./config/geth:/config
+      - ./data/geth:/root/.ethereum
+    entrypoint: /bin/sh /config/startnode.sh
+
+  ipfs.nn:
+    image: ipfs/go-ipfs:latest
+    container_name: ipfs.nn
+    volumes:
+     - "127.0.0.1:5001:5001"
+     - ./data/ipfs:/data/ipfs
+
+#  portainer.nn:
+#    image: portainer/portainer
+#    container_name: portainer.test
+#    ports:
+#      - "9000:9000"
+#    command: -H unix:///var/run/docker.sock
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    networks:
+#      network:
+#        ipv4_address: 172.34.1.100
